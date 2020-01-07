@@ -2,8 +2,8 @@
 
 MYUSER="vagrant"
 SSH_ARGS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-POD_NETWORK_CIDR="10.244.0.0/16"
-KUBERNETES_VERSION="1.10.3"
+POD_NETWORK_CIDR="172.21.0.0/16"
+KUBERNETES_VERSION="1.16.0"
 CNI_URL="https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
 
 INSTALL_KUBERNETES="
@@ -44,7 +44,7 @@ echo "# Install kubernetes Master"
 ssh -t ${MYUSER}@node1 ${SSH_ARGS} "sudo /bin/bash -cx '
 $INSTALL_KUBERNETES
 
-kubeadm init --pod-network-cidr=$POD_NETWORK_CIDR --kubernetes-version v${KUBERNETES_VERSION}
+kubeadm init --ignore-preflight-errors=NumCPU --pod-network-cidr=$POD_NETWORK_CIDR --kubernetes-version v${KUBERNETES_VERSION}
 
 test -d /home/$MYUSER/.kube || mkdir /home/$MYUSER/.kube
 cp -i /etc/kubernetes/admin.conf /home/$MYUSER/.kube/config
@@ -58,6 +58,8 @@ kubectl apply -f $CNI_URL
 echo "# Create bootstrap token command using: ssh ${MYUSER}@node1 \"sudo kubeadm token create --print-join-command\""
 KUBEADM_TOKEN_COMMAND=`ssh -t ${MYUSER}@node1 ${SSH_ARGS} "sudo kubeadm token create --print-join-command"`
 
+echo $KUBEADM_TOKEN_COMMAND > test.log
+KUBEADM_TOKEN_COMMAND=$(echo $KUBEADM_TOKEN_COMMAND | tr -d '\r')
 echo "# Install Kubernetes packages to all nodes and join the nodes to the master using bootstrap token"
 for COUNTER in {2..3}; do
   echo "*** node$COUNTER"
@@ -78,9 +80,8 @@ echo "*** Allow pods to be scheduled on the master"
 kubectl taint nodes node1 node-role.kubernetes.io/master-
 
 echo "*** Enable routing from local machine (host) to the kubernetes pods/services/etc"
-echo "*** Adding routes (10.244.0.0/16, 10.96.0.0/12) -> [$NODE1_IP]"
-sudo bash -c "ip route | grep -q 10.244.0.0/16 && ip route del 10.244.0.0/16; ip route add 10.244.0.0/16 via $NODE1_IP"
-sudo bash -c "ip route | grep -q 10.96.0.0/12  && ip route del 10.96.0.0/12;  ip route add 10.96.0.0/12  via $NODE1_IP"
+echo "*** Adding routes (172.21.0.0/16) -> [$NODE1_IP]"
+sudo bash -c "ip route | grep -q 172.21.0.0/16 && ip route del 172.21.0.0/16; ip route add 172.21.0.0/16 via $NODE1_IP"
 
 cat << \EOF
 *** Wait few minutes for the worker nodes to join..."

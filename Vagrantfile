@@ -16,7 +16,7 @@ Vagrant.configure(2) do |config|
     domain.cpus = 1
     domain.memory = 3072
     domain.driver = "kvm"
-    #domain.management_network_address = "192.168.100.0/24"
+    domain.management_network_address = "172.19.0.0/16"
   end
 
   (1..node_count).each do |i|
@@ -24,10 +24,10 @@ Vagrant.configure(2) do |config|
       config.vm.hostname = "node#{i}"
       config.hostmanager.ignore_private_ip = true
       config.vm.network :private_network,
-        :ip => "192.168.220.#{i+10}",
+        :ip => "172.20.0.#{i+10}",
         :mac => "52:54:00:00:25:#{i+10}",
-        :libvirt__netmask => "255.255.252.0",
-        :libvirt__network_name => "k8s_network",
+        :libvirt__netmask => "255.255.0.0",
+        :libvirt__network_name => "kubernetes",
         :libvirt__dhcp_enabled => false,
         :libvirt__forward_mode => "route"
     end
